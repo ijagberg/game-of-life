@@ -21,7 +21,15 @@ impl MainState {
         let s = MainState {
             frames: 0,
             text,
-            grid: Grid::new(10, 10),
+            grid: {
+                let mut g = Grid::new();
+                g.set_alive((0, 0));
+                g.set_alive((1, 0));
+                g.set_alive((2, 0));
+                g.set_alive((2, 1));
+                g.set_alive((1, 2));
+                g
+            },
         };
         Ok(s)
     }
