@@ -1,15 +1,17 @@
+use core::fmt;
 use ggez::event;
 use ggez::{Context, GameResult};
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::fmt::{Debug, Formatter};
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub enum Cell {
     Alive,
     Dead,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Grid {
     pub cells: HashMap<(isize, isize), Cell>,
 }
@@ -48,9 +50,43 @@ impl Grid {
     }
 }
 
+impl Debug for Grid {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        let (left, right, up, down) = self.cells.keys().fold(
+            (
+                isize::max_value(),
+                isize::min_value(),
+                isize::max_value(),
+                isize::min_value(),
+            ),
+            |(min_x, max_x, min_y, max_y), &(x, y)| {
+                (
+                    if x < min_x { x } else { min_x },
+                    if x > max_x { x } else { max_x },
+                    if y < min_y { y } else { min_y },
+                    if y > max_y { y } else { max_y },
+                )
+            },
+        );
+
+        for row in up..=down {
+            writeln!(
+                f,
+                "{} asd",
+                (left..=right).fold("".to_string(), |prev, col| {
+                    match self.cells.get(&(col, row)) {
+                        Some(Cell::Alive) => format!("{}{}", prev, "X"),
+                        _ => format!("{}{}", prev, "O"),
+                    }
+                })
+            )?;
+        }
+        Ok(())
+    }
+}
+
 impl event::EventHandler for Grid {
     fn update(&mut self, _ctx: &mut Context) -> GameResult {
-        dbg!(&self.cells);
         let mut next_cells = Grid::new();
         for (&(x, y), cell) in &self.cells {
             match cell {
@@ -72,10 +108,11 @@ impl event::EventHandler for Grid {
                 }
             }
         }
+        self.cells = next_cells.cells;
         Ok(())
     }
 
     fn draw(&mut self, _ctx: &mut Context) -> GameResult {
-        unimplemented!()
+        Ok(())
     }
 }

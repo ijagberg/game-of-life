@@ -6,6 +6,7 @@ use ggez::{Context, GameResult};
 use grid::Grid;
 use std::env;
 use std::path;
+use std::time::Duration;
 
 struct MainState {
     grid: Grid,
@@ -19,8 +20,8 @@ impl MainState {
                 g.set_alive((0, 0));
                 g.set_alive((1, 0));
                 g.set_alive((2, 0));
-                g.set_alive((2, 1));
-                g.set_alive((1, 2));
+                g.set_alive((2, -1));
+                g.set_alive((1, -2));
                 g
             },
         };
@@ -30,8 +31,10 @@ impl MainState {
 
 impl event::EventHandler for MainState {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
+        println!("{:?}", self.grid);
         self.grid.update(ctx)?;
 
+        ggez::timer::sleep(Duration::from_secs(1));
         Ok(())
     }
 
