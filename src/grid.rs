@@ -85,7 +85,12 @@ impl Grid {
         Ok(())
     }
 
-    pub fn draw(&mut self, ctx: &mut Context, zoom_level: f32) -> GameResult {
+    pub fn draw(
+        &mut self,
+        ctx: &mut Context,
+        zoom_level: f32,
+        camera_pos: &super::CameraPosition,
+    ) -> GameResult {
         for ((x, y), cell) in &self.cells {
             match cell {
                 Cell::Alive => {
@@ -93,8 +98,8 @@ impl Grid {
                         ctx,
                         graphics::DrawMode::fill(),
                         Rect {
-                            x: zoom_level * (*x * 30) as f32,
-                            y: zoom_level * (*y * 30) as f32,
+                            x: zoom_level * (*x * 30) as f32 + camera_pos.x,
+                            y: zoom_level * (*y * 30) as f32 + camera_pos.y,
                             w: 30.0 * zoom_level,
                             h: 30.0 * zoom_level,
                         },
