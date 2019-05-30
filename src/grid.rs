@@ -6,7 +6,7 @@ use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Cell {
     Alive,
     Dead,
@@ -57,6 +57,10 @@ impl Grid {
                     neighbor.insert(Cell::Dead);
                 }
             });
+    }
+
+    pub fn set_dead(&mut self, (x, y): (isize, isize)) {
+        self.cells.remove(&(x, y));
     }
 
     pub fn update(&mut self, _ctx: &mut Context) -> GameResult {

@@ -1,5 +1,6 @@
 mod grid;
 
+use crate::grid::Cell;
 use ggez::event;
 use ggez::event::KeyMods;
 use ggez::graphics;
@@ -19,6 +20,13 @@ pub struct CameraPosition {
     y: f32,
 }
 
+enum MouseMode {
+    MovingCanvas,
+    Spawning,
+    Killing,
+    None,
+}
+
 impl CameraPosition {
     pub fn new() -> Self {
         CameraPosition { x: 0., y: 0. }
@@ -31,7 +39,7 @@ struct MainState {
     zoom_level: f32,
     camera_pos: CameraPosition,
     is_paused: bool,
-    is_moving_canvas: bool,
+    mouse_mode: MouseMode,
 }
 
 impl MainState {
@@ -50,19 +58,38 @@ impl MainState {
             zoom_level: 1.,
             camera_pos: CameraPosition::new(),
             is_paused: false,
-            is_moving_canvas: false,
+            mouse_mode: MouseMode::None,
         }
+    }
+
+    pub fn get_cell_coords(&self, x: f32, y: f32) -> (isize, isize) {
+        let cell_x =
+            (x / ((30. + self.camera_pos.x) * self.zoom_level + self.camera_pos.x)) as isize;
+        let cell_y = (y / ((30. + self.camera_pos.y) * self.zoom_level)) as isize;
+        (cell_x, cell_y)
     }
 }
 
 impl event::EventHandler for MainState {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
-        if self.is_moving_canvas {
-            let d = ggez::input::mouse::delta(ctx);
-            self.camera_pos.x += d.x;
-            self.camera_pos.y += d.y;
+        match self.mouse_mode {
+            MouseMode::MovingCanvas => {
+                let d = ggez::input::mouse::delta(ctx);
+                self.camera_pos.x += d.x;
+                self.camera_pos.y += d.y;
+            }
+            MouseMode::Spawning => {
+                let mouse_pos = ggez::input::mouse::position(ctx);
+                let (target_cell_x, target_cell_y) = self.get_cell_coords(mouse_pos.x, mouse_pos.y);
+                self.grid.set_alive((target_cell_x, target_cell_y));
+            }
+            MouseMode::Killing => {
+                let mouse_pos = ggez::input::mouse::position(ctx);
+                let (target_cell_x, target_cell_y) = self.get_cell_coords(mouse_pos.x, mouse_pos.y);
+                self.grid.set_dead((target_cell_x, target_cell_y));
+            }
+            _ => (),
         }
-
         if self.is_paused {
             return Ok(());
         }
@@ -80,16 +107,23 @@ impl event::EventHandler for MainState {
         graphics::present(ctx)
     }
 
-    fn mouse_button_down_event(
-        &mut self,
-        ctx: &mut Context,
-        button: MouseButton,
-        _x: f32,
-        _y: f32,
-    ) {
+    fn mouse_button_down_event(&mut self, ctx: &mut Context, button: MouseButton, x: f32, y: f32) {
         match button {
             MouseButton::Left if ggez::input::keyboard::is_key_pressed(ctx, KeyCode::LShift) => {
-                dbg!(self.is_moving_canvas = true)
+                dbg!(self.mouse_mode = MouseMode::MovingCanvas)
+            }
+            MouseButton::Left => {
+                let (target_cell_x, target_cell_y) = self.get_cell_coords(x, y);
+                dbg!(&(target_cell_x, target_cell_y));
+                match self
+                    .grid
+                    .cells
+                    .get(&(target_cell_x, target_cell_y))
+                    .unwrap_or(&Cell::Dead)
+                    {
+                        Cell::Alive => dbg!(self.mouse_mode = MouseMode::Killing),
+                        Cell::Dead => dbg!(self.mouse_mode = MouseMode::Spawning),
+                    }
             }
             _ => (),
         }
@@ -97,7 +131,7 @@ impl event::EventHandler for MainState {
 
     fn mouse_button_up_event(&mut self, _ctx: &mut Context, button: MouseButton, _x: f32, _y: f32) {
         match button {
-            MouseButton::Left => dbg!(self.is_moving_canvas = false),
+            MouseButton::Left => dbg!(self.mouse_mode = MouseMode::None),
             _ => (),
         }
     }
@@ -127,7 +161,7 @@ impl event::EventHandler for MainState {
         match keycode {
             KeyCode::Space => self.is_paused = !self.is_paused,
             KeyCode::LShift if ggez::input::mouse::button_pressed(ctx, MouseButton::Left) => {
-                dbg!(self.is_moving_canvas = true)
+                dbg!(self.mouse_mode = MouseMode::MovingCanvas)
             }
             _ => (),
         }
@@ -135,7 +169,7 @@ impl event::EventHandler for MainState {
 
     fn key_up_event(&mut self, _ctx: &mut Context, keycode: KeyCode, _keymods: KeyMods) {
         match keycode {
-            KeyCode::LShift => dbg!(self.is_moving_canvas = false),
+            KeyCode::LShift => dbg!(self.mouse_mode = MouseMode::None),
             _ => (),
         }
     }
