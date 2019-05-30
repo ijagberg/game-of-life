@@ -1,5 +1,6 @@
 use core::fmt;
-use ggez::event;
+use ggez::graphics::Rect;
+use ggez::{event, graphics};
 use ggez::{Context, GameResult};
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
@@ -24,7 +25,16 @@ impl Grid {
     }
 
     fn neighbors(&self, (x, y): (isize, isize)) -> Vec<(isize, isize)> {
-        vec![(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
+        vec![
+            (x + 1, y),     // Right
+            (x - 1, y),     // Left
+            (x, y + 1),     // Down
+            (x, y - 1),     // Up
+            (x + 1, y + 1), // Down Right
+            (x + 1, y - 1), // Up Right
+            (x - 1, y + 1), // Down Left
+            (x - 1, y - 1), // Up Left
+        ]
     }
 
     pub fn living_neighbors(&self, (x, y): (isize, isize)) -> usize {
@@ -112,7 +122,27 @@ impl event::EventHandler for Grid {
         Ok(())
     }
 
-    fn draw(&mut self, _ctx: &mut Context) -> GameResult {
+    fn draw(&mut self, ctx: &mut Context) -> GameResult {
+        for ((x, y), cell) in &self.cells {
+            match cell {
+                Cell::Alive => {
+                    let rectangle = graphics::Mesh::new_rectangle(
+                        ctx,
+                        graphics::DrawMode::fill(),
+                        Rect {
+                            x: (*x * 30) as f32,
+                            y: (*y * 30) as f32,
+                            w: 30.0,
+                            h: 30.0,
+                        },
+                        [0.3, 0.3, 0.0, 1.0].into(),
+                    )?;
+                    graphics::draw(ctx, &rectangle, (ggez::mint::Point2 { x: 0., y: 0. },))?;
+                }
+                Cell::Dead => (),
+            }
+        }
+
         Ok(())
     }
 }

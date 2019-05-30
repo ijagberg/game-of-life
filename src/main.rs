@@ -6,15 +6,19 @@ use ggez::{Context, GameResult};
 use grid::Grid;
 use std::env;
 use std::path;
-use std::time::Duration;
+use std::time::{Duration, Instant};
+
+const UPDATES_PER_SECOND: f32 = 8.0;
+const MILLIS_PER_UPDATE: u64 = (1.0 / UPDATES_PER_SECOND * 1000.0) as u64;
 
 struct MainState {
     grid: Grid,
+    last_update: Instant,
 }
 
 impl MainState {
-    fn new(_ctx: &mut Context) -> GameResult<MainState> {
-        let s = MainState {
+    fn new() -> Self {
+        MainState {
             grid: {
                 let mut g = Grid::new();
                 g.set_alive((0, 0));
@@ -24,25 +28,25 @@ impl MainState {
                 g.set_alive((1, -2));
                 g
             },
-        };
-        Ok(s)
+            last_update: Instant::now(),
+        }
     }
 }
 
 impl event::EventHandler for MainState {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
-        println!("{:?}", self.grid);
-        self.grid.update(ctx)?;
-
-        ggez::timer::sleep(Duration::from_secs(1));
+        if Instant::now() - self.last_update >= Duration::from_millis(MILLIS_PER_UPDATE) {
+            self.grid.update(ctx)?;
+            self.last_update = Instant::now();
+        }
         Ok(())
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
         graphics::clear(ctx, [0.1, 0.2, 0.3, 1.0].into());
-
         self.grid.draw(ctx)?;
 
+        graphics::present(ctx)?;
         Ok(())
     }
 }
@@ -59,6 +63,6 @@ pub fn main() -> GameResult {
     let cb = ggez::ContextBuilder::new("Spacewalk", "ijagberg").add_resource_path(resource_dir);
     let (ctx, event_loop) = &mut cb.build()?;
 
-    let state = &mut MainState::new(ctx)?;
+    let state = &mut MainState::new();
     event::run(ctx, event_loop, state)
 }
