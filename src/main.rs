@@ -14,6 +14,7 @@ const MILLIS_PER_UPDATE: u64 = (1.0 / UPDATES_PER_SECOND * 1000.0) as u64;
 struct MainState {
     grid: Grid,
     last_update: Instant,
+    zoom_level: f32,
 }
 
 impl MainState {
@@ -29,6 +30,7 @@ impl MainState {
                 g
             },
             last_update: Instant::now(),
+            zoom_level: 1.,
         }
     }
 }
@@ -44,10 +46,23 @@ impl event::EventHandler for MainState {
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
         graphics::clear(ctx, [0.1, 0.2, 0.3, 1.0].into());
-        self.grid.draw(ctx)?;
+        self.grid.draw(ctx, self.zoom_level)?;
 
-        graphics::present(ctx)?;
-        Ok(())
+        graphics::present(ctx)
+    }
+
+    fn mouse_wheel_event(&mut self, _ctx: &mut Context, _x: f32, y: f32) {
+        if y > 0. {
+            self.zoom_level += 0.1;
+            if self.zoom_level > 2. {
+                self.zoom_level = 2.;
+            }
+        } else {
+            self.zoom_level -= 0.1;
+            if self.zoom_level < 0.5 {
+                self.zoom_level = 0.5;
+            }
+        }
     }
 }
 
