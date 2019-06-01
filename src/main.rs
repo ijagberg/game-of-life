@@ -86,8 +86,12 @@ impl MainState {
     }
 
     pub fn get_cell_coords(&self, x: f32, y: f32) -> (isize, isize) {
-        let cell_x = ((x + self.camera_pos.x) / (30. * self.zoom_level)) as isize;
-        let cell_y = ((y + self.camera_pos.y) / (30. * self.zoom_level)) as isize;
+        let negative_x_offset = if x + self.camera_pos.x < 0. { -1 } else { 0 };
+        let negative_y_offset = if y + self.camera_pos.y < 0. { -1 } else { 0 };
+        let cell_x =
+            ((x + self.camera_pos.x) / (30. * self.zoom_level)) as isize + negative_x_offset;
+        let cell_y =
+            ((y + self.camera_pos.y) / (30. * self.zoom_level)) as isize + negative_y_offset;
         //dbg!(&(self.camera_pos.x, self.camera_pos.y, x, y, cell_x, cell_y));
         (cell_x, cell_y)
     }
@@ -115,7 +119,7 @@ impl event::EventHandler for MainState {
             }
             MouseMode::None => (),
         }
-        if self.is_paused {
+        if self.is_paused && !keyboard::is_key_pressed(ctx, KeyCode::D) {
             return Ok(());
         }
         if Instant::now() - self.last_update >= Duration::from_millis(MILLIS_PER_UPDATE) {
@@ -193,7 +197,7 @@ impl event::EventHandler for MainState {
 
     fn key_down_event(
         &mut self,
-        _ctx: &mut Context,
+        ctx: &mut Context,
         keycode: KeyCode,
         _keymods: KeyMods,
         _repeat: bool,
