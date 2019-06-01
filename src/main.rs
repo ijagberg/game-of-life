@@ -15,6 +15,7 @@ use std::time::{Duration, Instant};
 const UPDATES_PER_SECOND: f32 = 16.0;
 const MILLIS_PER_UPDATE: u64 = (1.0 / UPDATES_PER_SECOND * 1000.0) as u64;
 
+#[derive(Default)]
 pub struct CameraPosition {
     x: f32,
     y: f32,
@@ -90,7 +91,7 @@ impl event::EventHandler for MainState {
                 let (target_cell_x, target_cell_y) = self.get_cell_coords(mouse_pos.x, mouse_pos.y);
                 self.grid.set_dead((target_cell_x, target_cell_y));
             }
-            _ => (),
+            MouseMode::None => (),
         }
         if self.is_paused {
             return Ok(());
@@ -154,7 +155,7 @@ impl event::EventHandler for MainState {
 
     fn key_down_event(
         &mut self,
-        ctx: &mut Context,
+        _ctx: &mut Context,
         keycode: KeyCode,
         _keymods: KeyMods,
         _repeat: bool,
