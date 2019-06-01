@@ -1,6 +1,7 @@
 mod grid;
 
 use crate::grid::Cell;
+use clap::{App, Arg};
 use ggez::event;
 use ggez::event::KeyMods;
 use ggez::graphics;
@@ -8,8 +9,8 @@ use ggez::input::keyboard::{self, KeyCode};
 use ggez::input::mouse::{self, MouseButton};
 use ggez::{Context, GameResult};
 use grid::Grid;
-use std::env;
-use std::path;
+use std::fs::File;
+use std::io::{BufRead, BufReader};
 use std::time::{Duration, Instant};
 
 const UPDATES_PER_SECOND: f32 = 16.0;
@@ -44,22 +45,44 @@ struct MainState {
 }
 
 impl MainState {
-    fn new() -> Self {
+    pub fn new() -> Self {
         MainState {
-            grid: {
-                let mut g = Grid::new();
-                g.set_alive((0, 0));
-                g.set_alive((1, 0));
-                g.set_alive((2, 0));
-                g.set_alive((2, -1));
-                g.set_alive((1, -2));
-                g
-            },
+            grid: Grid::new(),
             last_update: Instant::now(),
             zoom_level: 1.,
             camera_pos: CameraPosition::new(),
             is_paused: false,
             mouse_mode: MouseMode::None,
+        }
+    }
+
+    pub fn from(file_name: &str) -> Self {
+        let mut grid = Grid::new();
+        if let Ok(f) = File::open(file_name) {
+            println!("Opened file {}", file_name);
+            let f = BufReader::new(f);
+
+            f.lines()
+                .map(std::result::Result::unwrap)
+                .enumerate()
+                .for_each(|(row, line)| {
+                    line.chars().enumerate().for_each(|(col, c)| match c {
+                        'O' => grid.set_alive((col as isize, row as isize)),
+                        _ => (),
+                    })
+                });
+
+            MainState {
+                grid,
+                last_update: Instant::now(),
+                zoom_level: 1.,
+                camera_pos: CameraPosition::new(),
+                is_paused: false,
+                mouse_mode: MouseMode::None,
+            }
+        } else {
+            println!("Could not find file {}", file_name);
+            MainState::new()
         }
     }
 
@@ -122,10 +145,10 @@ impl event::EventHandler for MainState {
                     .cells
                     .get(&(target_cell_x, target_cell_y))
                     .unwrap_or(&Cell::Dead)
-                {
-                    Cell::Alive => self.mouse_mode = MouseMode::Killing,
-                    Cell::Dead => self.mouse_mode = MouseMode::Spawning,
-                }
+                    {
+                        Cell::Alive => self.mouse_mode = MouseMode::Killing,
+                        Cell::Dead => self.mouse_mode = MouseMode::Spawning,
+                    }
             }
             _ => (),
         }
@@ -175,17 +198,34 @@ impl event::EventHandler for MainState {
 }
 
 pub fn main() -> GameResult {
-    let resource_dir = if let Ok(manifest_dir) = env::var("CARGO_MANIFEST_DIR") {
-        let mut path = path::PathBuf::from(manifest_dir);
-        path.push("resources");
-        path
-    } else {
-        path::PathBuf::from("./resources")
-    };
+    let matches = App::new("Game of Life")
+        .version("0.1")
+        .author("Isak J. <ijagberg@gmail.com>")
+        .arg(
+            Arg::with_name("initial state")
+                .short("i")
+                .long("initial-state")
+                .value_name("FILE")
+                .help("Sets up the initial state of the world")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("rate")
+                .short("r")
+                .help("number of updates per second")
+                .takes_value(true),
+        )
+        .get_matches();
 
-    let cb = ggez::ContextBuilder::new("Spacewalk", "ijagberg").add_resource_path(resource_dir);
+    dbg!(&matches);
+
+    let initial_state_file = matches
+        .value_of("initial state")
+        .unwrap_or("resources/default.txt");
+
+    let cb = ggez::ContextBuilder::new("Game of Life", "ijagberg");
     let (ctx, event_loop) = &mut cb.build()?;
 
-    let state = &mut MainState::new();
+    let state = &mut MainState::from(initial_state_file);
     event::run(ctx, event_loop, state)
 }
