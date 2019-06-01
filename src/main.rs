@@ -5,6 +5,7 @@ use clap::{App, Arg};
 use ggez::event;
 use ggez::event::KeyMods;
 use ggez::graphics;
+use ggez::graphics::Rect;
 use ggez::input::keyboard::{self, KeyCode};
 use ggez::input::mouse::{self, MouseButton};
 use ggez::{Context, GameResult};
@@ -59,7 +60,6 @@ impl MainState {
     pub fn from(file_name: &str) -> Self {
         let mut grid = Grid::new();
         if let Ok(f) = File::open(file_name) {
-            println!("Opened file {}", file_name);
             let f = BufReader::new(f);
 
             f.lines()
@@ -81,7 +81,6 @@ impl MainState {
                 mouse_mode: MouseMode::None,
             }
         } else {
-            println!("Could not find file {}", file_name);
             MainState::new()
         }
     }
@@ -130,6 +129,22 @@ impl event::EventHandler for MainState {
         graphics::clear(ctx, [0.1, 0.2, 0.3, 1.0].into());
         self.grid.draw(ctx, self.zoom_level, &self.camera_pos)?;
 
+        // Draw highlighted cell
+        let mouse_pos = mouse::position(ctx);
+        let (x, y) = self.get_cell_coords(mouse_pos.x, mouse_pos.y);
+        let highlight = graphics::Mesh::new_rectangle(
+            ctx,
+            graphics::DrawMode::stroke(5. * self.zoom_level),
+            Rect {
+                x: self.zoom_level * (x * 30) as f32 - self.camera_pos.x,
+                y: self.zoom_level * (y * 30) as f32 - self.camera_pos.y,
+                w: 30.0 * self.zoom_level,
+                h: 30.0 * self.zoom_level,
+            },
+            graphics::BLACK,
+        )?;
+        graphics::draw(ctx, &highlight, (ggez::mint::Point2 { x: 0., y: 0. },))?;
+
         graphics::present(ctx)
     }
 
@@ -145,10 +160,10 @@ impl event::EventHandler for MainState {
                     .cells
                     .get(&(target_cell_x, target_cell_y))
                     .unwrap_or(&Cell::Dead)
-                    {
-                        Cell::Alive => self.mouse_mode = MouseMode::Killing,
-                        Cell::Dead => self.mouse_mode = MouseMode::Spawning,
-                    }
+                {
+                    Cell::Alive => self.mouse_mode = MouseMode::Killing,
+                    Cell::Dead => self.mouse_mode = MouseMode::Spawning,
+                }
             }
             _ => (),
         }
@@ -164,14 +179,14 @@ impl event::EventHandler for MainState {
     fn mouse_wheel_event(&mut self, _ctx: &mut Context, _x: f32, y: f32) {
         // TODO: make this look nicer
         if y > 0. {
-            self.zoom_level += 0.1;
+            self.zoom_level += 0.05;
             if self.zoom_level > 2. {
                 self.zoom_level = 2.;
             }
         } else {
-            self.zoom_level -= 0.1;
-            if self.zoom_level < 0.1 {
-                self.zoom_level = 0.1;
+            self.zoom_level -= 0.05;
+            if self.zoom_level < 0.05 {
+                self.zoom_level = 0.05;
             }
         }
     }
@@ -207,12 +222,6 @@ pub fn main() -> GameResult {
                 .long("initial-state")
                 .value_name("FILE")
                 .help("Sets up the initial state of the world")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("rate")
-                .short("r")
-                .help("number of updates per second")
                 .takes_value(true),
         )
         .get_matches();
