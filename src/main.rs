@@ -230,7 +230,7 @@ pub fn main() -> GameResult {
         )
         .get_matches();
 
-    dbg!(&matches);
+    //dbg!(&matches);
 
     let initial_state_file = matches
         .value_of("initial state")
