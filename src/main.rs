@@ -4,15 +4,15 @@ use crate::grid::Cell;
 use ggez::event;
 use ggez::event::KeyMods;
 use ggez::graphics;
-use ggez::input::keyboard::KeyCode;
-use ggez::input::mouse::MouseButton;
+use ggez::input::keyboard::{self, KeyCode};
+use ggez::input::mouse::{self, MouseButton};
 use ggez::{Context, GameResult};
 use grid::Grid;
 use std::env;
 use std::path;
 use std::time::{Duration, Instant};
 
-const UPDATES_PER_SECOND: f32 = 8.0;
+const UPDATES_PER_SECOND: f32 = 16.0;
 const MILLIS_PER_UPDATE: u64 = (1.0 / UPDATES_PER_SECOND * 1000.0) as u64;
 
 pub struct CameraPosition {
@@ -21,7 +21,7 @@ pub struct CameraPosition {
 }
 
 enum MouseMode {
-    MovingCanvas,
+    MovingCanvas(f32, f32),
     Spawning,
     Killing,
     None,
@@ -63,9 +63,9 @@ impl MainState {
     }
 
     pub fn get_cell_coords(&self, x: f32, y: f32) -> (isize, isize) {
-        let cell_x =
-            (x / ((30. + self.camera_pos.x) * self.zoom_level + self.camera_pos.x)) as isize;
-        let cell_y = (y / ((30. + self.camera_pos.y) * self.zoom_level)) as isize;
+        let cell_x = ((x + self.camera_pos.x) / (30. * self.zoom_level)) as isize;
+        let cell_y = ((y + self.camera_pos.y) / (30. * self.zoom_level)) as isize;
+        //dbg!(&(self.camera_pos.x, self.camera_pos.y, x, y, cell_x, cell_y));
         (cell_x, cell_y)
     }
 }
@@ -73,18 +73,20 @@ impl MainState {
 impl event::EventHandler for MainState {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
         match self.mouse_mode {
-            MouseMode::MovingCanvas => {
-                let d = ggez::input::mouse::delta(ctx);
-                self.camera_pos.x += d.x;
-                self.camera_pos.y += d.y;
+            MouseMode::MovingCanvas(grab_x, grab_y) => {
+                let mouse_pos = mouse::position(ctx);
+                let (delta_x, delta_y) = (mouse_pos.x - grab_x, mouse_pos.y - grab_y);
+                self.camera_pos.x -= delta_x;
+                self.camera_pos.y -= delta_y;
+                self.mouse_mode = MouseMode::MovingCanvas(mouse_pos.x, mouse_pos.y);
             }
             MouseMode::Spawning => {
-                let mouse_pos = ggez::input::mouse::position(ctx);
+                let mouse_pos = mouse::position(ctx);
                 let (target_cell_x, target_cell_y) = self.get_cell_coords(mouse_pos.x, mouse_pos.y);
                 self.grid.set_alive((target_cell_x, target_cell_y));
             }
             MouseMode::Killing => {
-                let mouse_pos = ggez::input::mouse::position(ctx);
+                let mouse_pos = mouse::position(ctx);
                 let (target_cell_x, target_cell_y) = self.get_cell_coords(mouse_pos.x, mouse_pos.y);
                 self.grid.set_dead((target_cell_x, target_cell_y));
             }
@@ -109,21 +111,20 @@ impl event::EventHandler for MainState {
 
     fn mouse_button_down_event(&mut self, ctx: &mut Context, button: MouseButton, x: f32, y: f32) {
         match button {
-            MouseButton::Left if ggez::input::keyboard::is_key_pressed(ctx, KeyCode::LShift) => {
-                dbg!(self.mouse_mode = MouseMode::MovingCanvas)
+            MouseButton::Left if keyboard::is_key_pressed(ctx, KeyCode::LShift) => {
+                self.mouse_mode = MouseMode::MovingCanvas(x, y)
             }
             MouseButton::Left => {
                 let (target_cell_x, target_cell_y) = self.get_cell_coords(x, y);
-                dbg!(&(target_cell_x, target_cell_y));
                 match self
                     .grid
                     .cells
                     .get(&(target_cell_x, target_cell_y))
                     .unwrap_or(&Cell::Dead)
-                    {
-                        Cell::Alive => dbg!(self.mouse_mode = MouseMode::Killing),
-                        Cell::Dead => dbg!(self.mouse_mode = MouseMode::Spawning),
-                    }
+                {
+                    Cell::Alive => self.mouse_mode = MouseMode::Killing,
+                    Cell::Dead => self.mouse_mode = MouseMode::Spawning,
+                }
             }
             _ => (),
         }
@@ -131,7 +132,7 @@ impl event::EventHandler for MainState {
 
     fn mouse_button_up_event(&mut self, _ctx: &mut Context, button: MouseButton, _x: f32, _y: f32) {
         match button {
-            MouseButton::Left => dbg!(self.mouse_mode = MouseMode::None),
+            MouseButton::Left => self.mouse_mode = MouseMode::None,
             _ => (),
         }
     }
@@ -145,8 +146,8 @@ impl event::EventHandler for MainState {
             }
         } else {
             self.zoom_level -= 0.1;
-            if self.zoom_level < 0.5 {
-                self.zoom_level = 0.5;
+            if self.zoom_level < 0.1 {
+                self.zoom_level = 0.1;
             }
         }
     }
@@ -160,16 +161,13 @@ impl event::EventHandler for MainState {
     ) {
         match keycode {
             KeyCode::Space => self.is_paused = !self.is_paused,
-            KeyCode::LShift if ggez::input::mouse::button_pressed(ctx, MouseButton::Left) => {
-                dbg!(self.mouse_mode = MouseMode::MovingCanvas)
-            }
             _ => (),
         }
     }
 
     fn key_up_event(&mut self, _ctx: &mut Context, keycode: KeyCode, _keymods: KeyMods) {
         match keycode {
-            KeyCode::LShift => dbg!(self.mouse_mode = MouseMode::None),
+            KeyCode::LShift => self.mouse_mode = MouseMode::None,
             _ => (),
         }
     }

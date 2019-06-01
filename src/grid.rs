@@ -102,8 +102,8 @@ impl Grid {
                         ctx,
                         graphics::DrawMode::fill(),
                         Rect {
-                            x: zoom_level * (*x * 30) as f32 + camera_pos.x,
-                            y: zoom_level * (*y * 30) as f32 + camera_pos.y,
+                            x: zoom_level * (*x * 30) as f32 - camera_pos.x,
+                            y: zoom_level * (*y * 30) as f32 - camera_pos.y,
                             w: 30.0 * zoom_level,
                             h: 30.0 * zoom_level,
                         },
