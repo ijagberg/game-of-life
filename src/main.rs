@@ -10,8 +10,10 @@ use ggez::input::keyboard::{self, KeyCode};
 use ggez::input::mouse::{self, MouseButton};
 use ggez::{Context, GameResult};
 use grid::Grid;
+use std::ffi::OsStr;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
+use std::path::Path;
 use std::time::{Duration, Instant};
 
 const UPDATES_PER_SECOND: f32 = 16.0;
@@ -57,32 +59,111 @@ impl MainState {
         }
     }
 
-    pub fn from(file_name: &str) -> Self {
-        let mut grid = Grid::new();
-        if let Ok(f) = File::open(file_name) {
-            let f = BufReader::new(f);
-
-            f.lines()
-                .map(std::result::Result::unwrap)
-                .enumerate()
-                .for_each(|(row, line)| {
-                    line.chars().enumerate().for_each(|(col, c)| match c {
-                        'O' => grid.set_alive((col as isize, row as isize)),
-                        _ => (),
-                    })
-                });
-
-            MainState {
-                grid,
-                last_update: Instant::now(),
-                zoom_level: 1.,
-                camera_pos: CameraPosition::new(),
-                is_paused: false,
-                mouse_mode: MouseMode::None,
-            }
-        } else {
-            MainState::new()
+    pub fn from(file_name: &Path) -> Self {
+        match file_name.extension().and_then(OsStr::to_str) {
+            Some("txt") => Self::from_txt(file_name).unwrap_or(Self::new()),
+            Some("rle") => Self::from_rle(file_name).unwrap_or(Self::new()),
+            _ => Self::new(),
         }
+    }
+
+    fn from_txt(file_name: &Path) -> Result<Self, Box<std::error::Error>> {
+        let mut grid = Grid::new();
+        let f = File::open(file_name)?;
+        let f = BufReader::new(f);
+        f.lines()
+            .filter_map(|l| l.ok())
+            .enumerate()
+            .for_each(|(row, line)| {
+                line.chars().enumerate().for_each(|(col, c)| match c {
+                    'O' => grid.set_alive((col as isize, row as isize)),
+                    _ => (),
+                })
+            });
+        Ok(MainState {
+            grid,
+            last_update: Instant::now(),
+            zoom_level: 1.,
+            camera_pos: CameraPosition::new(),
+            is_paused: false,
+            mouse_mode: MouseMode::None,
+        })
+    }
+
+    fn from_rle(file_name: &Path) -> Result<Self, Box<std::error::Error>> {
+        use regex::Regex;
+
+        let mut grid = Grid::new();
+        let f = File::open(file_name)?;
+        let f = BufReader::new(f);
+
+        let mut lines = f
+            .lines()
+            .filter_map(|l| l.ok())
+            .skip_while(|line| line.starts_with('#'));
+
+        let size_line = lines.next().ok_or("invalid file format")?;
+        let (x, y): (usize, usize) = {
+            let re = Regex::new(r"x\s*=\s*(?P<x>\d+)\s*,\s*y\s*=\s*(?P<y>\d+)")?;
+            let captures = re.captures(&size_line).ok_or("could not capture")?;
+            (
+                captures
+                    .get(1)
+                    .ok_or("did not capture x")?
+                    .as_str()
+                    .parse()?,
+                captures
+                    .get(2)
+                    .ok_or("did not capture y")?
+                    .as_str()
+                    .parse()?,
+            )
+        };
+
+        // Concatenate remaining lines into one long string
+        let content = lines.fold("".into(), |prev, line| format!("{}{}", prev, line));
+
+        let content_lines = content.split('$').collect::<Vec<_>>();
+
+        let tag_regex = Regex::new(r"(\d*)([b|o])")?;
+        for (row_idx, content_line) in content_lines.iter().enumerate() {
+            let mut col = 0;
+            for capture in tag_regex.captures_iter(content_line) {
+                let (repetitions, cell_state) = {
+                    (
+                        capture[1].parse::<usize>().unwrap_or(1),
+                        match capture[2].into() {
+                            "b" => Cell::Dead,
+                            "o" => Cell::Alive,
+                            _ => {
+                                return Err(regex::Error::Syntax(
+                                    "could not capture cell state".into(),
+                                )
+                                .into())
+                            }
+                        },
+                    )
+                };
+                match cell_state {
+                    Cell::Alive => {
+                        for col_idx in col..col + repetitions {
+                            grid.set_alive((col_idx as isize, row_idx as isize));
+                        }
+                    }
+                    _ => (),
+                }
+                col += repetitions;
+            }
+        }
+
+        Ok(MainState {
+            grid,
+            last_update: Instant::now(),
+            zoom_level: 1.,
+            camera_pos: CameraPosition::new(),
+            is_paused: false,
+            mouse_mode: MouseMode::None,
+        })
     }
 
     pub fn get_cell_coords(&self, x: f32, y: f32) -> (isize, isize) {
@@ -197,7 +278,7 @@ impl event::EventHandler for MainState {
 
     fn key_down_event(
         &mut self,
-        ctx: &mut Context,
+        _ctx: &mut Context,
         keycode: KeyCode,
         _keymods: KeyMods,
         _repeat: bool,
@@ -239,6 +320,6 @@ pub fn main() -> GameResult {
     let cb = ggez::ContextBuilder::new("Game of Life", "ijagberg");
     let (ctx, event_loop) = &mut cb.build()?;
 
-    let state = &mut MainState::from(initial_state_file);
+    let state = &mut MainState::from(Path::new(initial_state_file));
     event::run(ctx, event_loop, state)
 }
