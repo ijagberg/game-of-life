@@ -2,6 +2,7 @@ mod grid;
 
 use crate::grid::Cell;
 use clap::{App, Arg};
+use ggez::conf::{FullscreenType, WindowMode};
 use ggez::event;
 use ggez::event::KeyMods;
 use ggez::graphics;
@@ -103,7 +104,7 @@ impl MainState {
             .skip_while(|line| line.starts_with('#'));
 
         let size_line = lines.next().ok_or("invalid file format")?;
-        let (x, y): (usize, usize) = {
+        let (_x, _y): (usize, usize) = {
             let re = Regex::new(r"x\s*=\s*(?P<x>\d+)\s*,\s*y\s*=\s*(?P<y>\d+)")?;
             let captures = re.captures(&size_line).ok_or("could not capture")?;
             (
@@ -318,7 +319,21 @@ pub fn main() -> GameResult {
         .unwrap_or("resources/default.txt");
 
     let cb = ggez::ContextBuilder::new("Game of Life", "ijagberg");
-    let (ctx, event_loop) = &mut cb.build()?;
+    let (ctx, event_loop) = &mut cb
+        .window_mode(WindowMode {
+            width: 1200.,
+            height: 600.,
+            maximized: false,
+            fullscreen_type: FullscreenType::Windowed,
+            borderless: false,
+            min_width: 100.,
+            min_height: 100.,
+            max_width: 0.0,
+            max_height: 0.0,
+            hidpi: false,
+            resizable: true,
+        })
+        .build()?;
 
     let state = &mut MainState::from(Path::new(initial_state_file));
     event::run(ctx, event_loop, state)
