@@ -263,18 +263,14 @@ impl event::EventHandler for MainState {
     }
 
     fn mouse_wheel_event(&mut self, _ctx: &mut Context, _x: f32, y: f32) {
-        // TODO: make this look nicer
-        if y > 0. {
-            self.zoom_level += 0.05;
-            if self.zoom_level > 2. {
-                self.zoom_level = 2.;
-            }
+        self.zoom_level += if y > 0 { 0.05 } else { -0.05 };
+        self.zoom_level = if self.zoom_level > 2. {
+            2.
+        } else if self.zoom_level < 0.05 {
+            0.05
         } else {
-            self.zoom_level -= 0.05;
-            if self.zoom_level < 0.05 {
-                self.zoom_level = 0.05;
-            }
-        }
+            self.zoom_level
+        };
     }
 
     fn key_down_event(
