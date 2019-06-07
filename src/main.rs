@@ -231,6 +231,50 @@ impl event::EventHandler for MainState {
         )?;
         graphics::draw(ctx, &highlight, (ggez::mint::Point2 { x: 0., y: 0. },))?;
 
+        // Debug drawing
+        {
+            if let Ok(origo_to_camera) = graphics::Mesh::new_line(
+                ctx,
+                &vec![
+                    ggez::mint::Point2 {
+                        x: 0. - self.camera_pos.x,
+                        y: 0. - self.camera_pos.y,
+                    },
+                    ggez::mint::Point2 { x: 0., y: 0. },
+                ],
+                10.,
+                graphics::BLACK,
+            ) {
+                graphics::draw(
+                    ctx,
+                    &origo_to_camera,
+                    (ggez::mint::Point2 { x: 0., y: 0. },),
+                )?;
+            }
+            let mouse_pos = ggez::input::mouse::position(ctx);
+            if let Ok(origo_to_mouse) = graphics::Mesh::new_line(
+                ctx,
+                &vec![
+                    ggez::mint::Point2 {
+                        x: 0. - self.camera_pos.x,
+                        y: 0. - self.camera_pos.y,
+                    },
+                    ggez::mint::Point2 {
+                        x: mouse_pos.x,
+                        y: mouse_pos.y,
+                    },
+                ],
+                10.,
+                graphics::BLACK,
+            ) {
+                graphics::draw(
+                    ctx,
+                    &origo_to_mouse,
+                    (ggez::mint::Point2 { x: 0., y: 0. },),
+                )?;
+            }
+        }
+
         graphics::present(ctx)
     }
 
@@ -262,8 +306,8 @@ impl event::EventHandler for MainState {
         }
     }
 
-    fn mouse_wheel_event(&mut self, _ctx: &mut Context, _x: f32, y: f32) {
-        self.zoom_level += if y > 0 { 0.05 } else { -0.05 };
+    fn mouse_wheel_event(&mut self, ctx: &mut Context, _x: f32, y: f32) {
+        self.zoom_level += if y > 0. { 0.05 } else { -0.05 };
         self.zoom_level = if self.zoom_level > 2. {
             2.
         } else if self.zoom_level < 0.05 {
@@ -271,6 +315,24 @@ impl event::EventHandler for MainState {
         } else {
             self.zoom_level
         };
+
+        let mouse_pos_before: (f32, f32) = {
+            let pos = ggez::input::mouse::position(ctx);
+            (pos.x - self.camera_pos.x, pos.y - self.camera_pos.y)
+        };
+        let camera_mouse_vector: (f32, f32) = (
+            self.camera_pos.x - mouse_pos_before.0,
+            self.camera_pos.y - mouse_pos_before.1,
+        );
+        let mouse_pos_after = (
+            mouse_pos_before.0 * self.zoom_level - self.camera_pos.x,
+            mouse_pos_before.1 * self.zoom_level - self.camera_pos.y,
+        );
+        let camera_pos_after = CameraPosition {
+            x: mouse_pos_after.0 + camera_mouse_vector.0,
+            y: mouse_pos_after.1 + camera_mouse_vector.1,
+        };
+        self.camera_pos = camera_pos_after;
     }
 
     fn key_down_event(
