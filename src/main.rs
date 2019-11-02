@@ -6,7 +6,6 @@ use ggez::conf::{FullscreenType, WindowMode};
 use ggez::event;
 use ggez::event::KeyMods;
 use ggez::graphics;
-use ggez::graphics::Rect;
 use ggez::input::keyboard::{self, KeyCode};
 use ggez::input::mouse::{self, MouseButton};
 use ggez::{Context, GameResult};
@@ -48,6 +47,12 @@ struct MainState {
     mouse_mode: MouseMode,
 }
 
+impl Default for MainState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MainState {
     pub fn new() -> Self {
         MainState {
@@ -62,13 +67,13 @@ impl MainState {
 
     pub fn from(file_name: &Path) -> Self {
         match file_name.extension().and_then(OsStr::to_str) {
-            Some("txt") => Self::from_txt(file_name).unwrap_or(Self::new()),
-            Some("rle") => Self::from_rle(file_name).unwrap_or(Self::new()),
+            Some("txt") => Self::from_txt(file_name).unwrap_or_default(),
+            Some("rle") => Self::from_rle(file_name).unwrap_or_default(),
             _ => Self::new(),
         }
     }
 
-    fn from_txt(file_name: &Path) -> Result<Self, Box<std::error::Error>> {
+    fn from_txt(file_name: &Path) -> Result<Self, Box<dyn std::error::Error>> {
         let mut grid = Grid::new();
         let f = File::open(file_name)?;
         let f = BufReader::new(f);
@@ -76,9 +81,10 @@ impl MainState {
             .filter_map(|l| l.ok())
             .enumerate()
             .for_each(|(row, line)| {
-                line.chars().enumerate().for_each(|(col, c)| match c {
-                    'O' => grid.set_alive((col as isize, row as isize)),
-                    _ => (),
+                line.chars().enumerate().for_each(|(col, c)| {
+                    if let 'O' = c {
+                        grid.set_alive((col as isize, row as isize))
+                    }
                 })
             });
         Ok(MainState {
@@ -91,7 +97,7 @@ impl MainState {
         })
     }
 
-    fn from_rle(file_name: &Path) -> Result<Self, Box<std::error::Error>> {
+    fn from_rle(file_name: &Path) -> Result<Self, Box<dyn std::error::Error>> {
         use regex::Regex;
 
         let mut grid = Grid::new();
@@ -145,13 +151,10 @@ impl MainState {
                         },
                     )
                 };
-                match cell_state {
-                    Cell::Alive => {
-                        for col_idx in col..col + repetitions {
-                            grid.set_alive((col_idx as isize, row_idx as isize));
-                        }
+                if let Cell::Alive = cell_state {
+                    for col_idx in col..col + repetitions {
+                        grid.set_alive((col_idx as isize, row_idx as isize));
                     }
-                    _ => (),
                 }
                 col += repetitions;
             }
@@ -215,65 +218,61 @@ impl event::EventHandler for MainState {
         graphics::clear(ctx, [0.1, 0.2, 0.3, 1.0].into());
         self.grid.draw(ctx, self.zoom_level, &self.camera_pos)?;
 
-        // Draw highlighted cell
-        let mouse_pos = mouse::position(ctx);
-        let (x, y) = self.get_cell_coords(mouse_pos.x, mouse_pos.y);
-        let highlight = graphics::Mesh::new_rectangle(
-            ctx,
-            graphics::DrawMode::stroke(5. * self.zoom_level),
-            Rect {
-                x: self.zoom_level * (x * 30) as f32 - self.camera_pos.x,
-                y: self.zoom_level * (y * 30) as f32 - self.camera_pos.y,
-                w: 30.0 * self.zoom_level,
-                h: 30.0 * self.zoom_level,
-            },
-            graphics::BLACK,
-        )?;
-        graphics::draw(ctx, &highlight, (ggez::mint::Point2 { x: 0., y: 0. },))?;
-
         // Debug drawing
-        {
-            if let Ok(origo_to_camera) = graphics::Mesh::new_line(
-                ctx,
-                &vec![
-                    ggez::mint::Point2 {
-                        x: 0. - self.camera_pos.x,
-                        y: 0. - self.camera_pos.y,
-                    },
-                    ggez::mint::Point2 { x: 0., y: 0. },
-                ],
-                10.,
-                graphics::BLACK,
-            ) {
-                graphics::draw(
-                    ctx,
-                    &origo_to_camera,
-                    (ggez::mint::Point2 { x: 0., y: 0. },),
-                )?;
-            }
-            let mouse_pos = ggez::input::mouse::position(ctx);
-            if let Ok(origo_to_mouse) = graphics::Mesh::new_line(
-                ctx,
-                &vec![
-                    ggez::mint::Point2 {
-                        x: 0. - self.camera_pos.x,
-                        y: 0. - self.camera_pos.y,
-                    },
-                    ggez::mint::Point2 {
-                        x: mouse_pos.x,
-                        y: mouse_pos.y,
-                    },
-                ],
-                10.,
-                graphics::BLACK,
-            ) {
-                graphics::draw(
-                    ctx,
-                    &origo_to_mouse,
-                    (ggez::mint::Point2 { x: 0., y: 0. },),
-                )?;
-            }
-        }
+        // {
+        // // Draw highlighted cell
+        // let mouse_pos = mouse::position(ctx);
+        // let (x, y) = self.get_cell_coords(mouse_pos.x, mouse_pos.y);
+        // let highlight = graphics::Mesh::new_rectangle(
+        // ctx,
+        // graphics::DrawMode::stroke(5. * self.zoom_level),
+        // Rect {
+        // x: self.zoom_level * (x * 30) as f32 - self.camera_pos.x,
+        // y: self.zoom_level * (y * 30) as f32 - self.camera_pos.y,
+        // w: 30.0 * self.zoom_level,
+        // h: 30.0 * self.zoom_level,
+        // },
+        // graphics::BLACK,
+        // )?;
+        // graphics::draw(ctx, &highlight, (ggez::mint::Point2 { x: 0., y: 0. },))?;
+
+        // if let Ok(origo_to_camera) = graphics::Mesh::new_line(
+        // ctx,
+        // &vec![
+        // ggez::mint::Point2 {
+        // x: 0. - self.camera_pos.x,
+        // y: 0. - self.camera_pos.y,
+        // },
+        // ggez::mint::Point2 { x: 0., y: 0. },
+        // ],
+        // 10.,
+        // graphics::BLACK,
+        // ) {
+        // graphics::draw(
+        // ctx,
+        // &origo_to_camera,
+        // (ggez::mint::Point2 { x: 0., y: 0. },),
+        // )?;
+        // }
+        // let mouse_pos = ggez::input::mouse::position(ctx);
+        // if let Ok(origo_to_mouse) = graphics::Mesh::new_line(
+        // ctx,
+        // &vec![
+        // ggez::mint::Point2 {
+        // x: 0. - self.camera_pos.x,
+        // y: 0. - self.camera_pos.y,
+        // },
+        // ggez::mint::Point2 {
+        // x: mouse_pos.x,
+        // y: mouse_pos.y,
+        // },
+        // ],
+        // 10.,
+        // graphics::BLACK,
+        // ) {
+        // graphics::draw(ctx, &origo_to_mouse, (ggez::mint::Point2 { x: 0., y: 0. },))?;
+        // }
+        // }
 
         graphics::present(ctx)
     }
@@ -300,9 +299,8 @@ impl event::EventHandler for MainState {
     }
 
     fn mouse_button_up_event(&mut self, _ctx: &mut Context, button: MouseButton, _x: f32, _y: f32) {
-        match button {
-            MouseButton::Left => self.mouse_mode = MouseMode::None,
-            _ => (),
+        if let MouseButton::Left = button {
+            self.mouse_mode = MouseMode::None
         }
     }
 
@@ -316,17 +314,17 @@ impl event::EventHandler for MainState {
             self.zoom_level
         };
 
-        let mouse_pos_before: (f32, f32) = {
+        let mouse_pos_before = {
             let pos = ggez::input::mouse::position(ctx);
             (pos.x - self.camera_pos.x, pos.y - self.camera_pos.y)
         };
-        let camera_mouse_vector: (f32, f32) = (
+        let camera_mouse_vector = (
             self.camera_pos.x - mouse_pos_before.0,
             self.camera_pos.y - mouse_pos_before.1,
         );
         let mouse_pos_after = (
-            mouse_pos_before.0 * self.zoom_level - self.camera_pos.x,
-            mouse_pos_before.1 * self.zoom_level - self.camera_pos.y,
+            mouse_pos_before.0 * self.zoom_level,
+            mouse_pos_before.1 * self.zoom_level,
         );
         let camera_pos_after = CameraPosition {
             x: mouse_pos_after.0 + camera_mouse_vector.0,
@@ -342,16 +340,14 @@ impl event::EventHandler for MainState {
         _keymods: KeyMods,
         _repeat: bool,
     ) {
-        match keycode {
-            KeyCode::Space => self.is_paused = !self.is_paused,
-            _ => (),
+        if let KeyCode::Space = keycode {
+            self.is_paused = !self.is_paused
         }
     }
 
     fn key_up_event(&mut self, _ctx: &mut Context, keycode: KeyCode, _keymods: KeyMods) {
-        match keycode {
-            KeyCode::LShift => self.mouse_mode = MouseMode::None,
-            _ => (),
+        if let KeyCode::LShift = keycode {
+            self.mouse_mode = MouseMode::None
         }
     }
 }
