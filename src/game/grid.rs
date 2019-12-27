@@ -1,3 +1,4 @@
+use super::state::CameraPosition;
 use core::fmt;
 use ggez::graphics;
 use ggez::graphics::Rect;
@@ -12,7 +13,7 @@ pub enum Cell {
     Dead,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct Grid {
     pub cells: HashMap<(isize, isize), Cell>,
 }
@@ -93,7 +94,7 @@ impl Grid {
         &mut self,
         ctx: &mut Context,
         zoom_level: f32,
-        camera_pos: &super::CameraPosition,
+        camera_pos: &CameraPosition,
     ) -> GameResult {
         for ((x, y), cell) in &self.cells {
             match cell {
