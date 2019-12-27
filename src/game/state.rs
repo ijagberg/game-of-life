@@ -1,5 +1,5 @@
 use crate::game::grid::{Cell, Grid};
-use ggez::conf::{FullscreenType, WindowMode};
+
 use ggez::event;
 use ggez::event::KeyMods;
 use ggez::graphics;
