@@ -12,6 +12,6 @@ Rust implementation of Conway's Game of Life, using [ggez](https://github.com/gg
 
 # Parameters
 
-* -i <FILE>, sets the initial state of the game to the plaintext formatted state in <FILE> (default="resources/default.txt")
-  
-  ```game-of-life -i resources/koks_galaxy.txt```
+* --debug, enable debug logging
+* --file <FILE>, sets the initial state of the game to the state in <FILE> (supports "txt" and "rle" extensions)
+  ```game-of-life --file resources/koks_galaxy.txt```
