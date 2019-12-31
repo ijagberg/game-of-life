@@ -1,42 +1,23 @@
 use crate::game::state::State;
-use clap::{App, Arg};
 use ggez::conf::{FullscreenType, WindowMode};
 use ggez::event;
+use structopt::StructOpt;
 
+use ggez::GameResult;
 
-
-
-use ggez::{GameResult};
-
-
-
+pub use settings::Settings;
 use std::path::Path;
-
+use std::path::PathBuf;
 
 mod game;
+mod grid;
+mod settings;
 
 pub const UPDATES_PER_SECOND: f32 = 16.0;
 pub const MILLIS_PER_UPDATE: u64 = (1.0 / UPDATES_PER_SECOND * 1000.0) as u64;
 
 pub fn main() -> GameResult {
-    let matches = App::new("Game of Life")
-        .version("0.1")
-        .author("Isak J. <ijagberg@gmail.com>")
-        .arg(
-            Arg::with_name("initial state")
-                .short("i")
-                .long("initial-state")
-                .value_name("FILE")
-                .help("Sets up the initial state of the world")
-                .takes_value(true),
-        )
-        .get_matches();
-
-    //dbg!(&matches);
-
-    let initial_state_file = matches
-        .value_of("initial state")
-        .unwrap_or("resources/default.txt");
+    let settings = Settings::from_args();
 
     let cb = ggez::ContextBuilder::new("Game of Life", "ijagberg");
     let (ctx, event_loop) = &mut cb
@@ -55,6 +36,6 @@ pub fn main() -> GameResult {
         })
         .build()?;
 
-    let mut state = State::from(Path::new(initial_state_file));
+    let mut state = State::new(settings);
     event::run(ctx, event_loop, &mut state)
 }

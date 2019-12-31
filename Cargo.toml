@@ -7,5 +7,6 @@ edition = "2018"
 [dependencies]
 ggez = "0.5.0-rc.2"
 cgmath = { version = "0.17", features = ["mint"]}
-clap = "2.33.0"
 regex = "1.1.6"
+num = "0.2.0"
+structopt = "0.3.7"
