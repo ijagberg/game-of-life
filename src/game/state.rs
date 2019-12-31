@@ -57,7 +57,7 @@ impl State {
         Coord::new(cell_x, cell_y)
     }
 
-    fn update_grid(&mut self, _ctx: &mut Context) -> GameResult {
+    fn step_forward(&mut self) {
         if self.settings.debug {
             println!("updating grid...");
         }
@@ -84,7 +84,6 @@ impl State {
             }
         }
         self.grid = next_grid;
-        Ok(())
     }
 
     pub fn draw_grid(&mut self, ctx: &mut Context) -> GameResult {
@@ -112,9 +111,10 @@ impl State {
 impl event::EventHandler for State {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
         if !self.is_paused
-            && Instant::now() - self.last_update >= Duration::from_millis(crate::MILLIS_PER_UPDATE)
+            && Instant::now() - self.last_update
+                >= Duration::from_millis(self.settings.millis_per_update())
         {
-            self.update_grid(ctx)?;
+            self.step_forward();
             self.last_update = Instant::now();
         }
 
@@ -206,12 +206,16 @@ impl event::EventHandler for State {
         _keymods: KeyMods,
         _repeat: bool,
     ) {
-        if let KeyCode::Space = keycode {
-            self.is_paused = !self.is_paused;
+        match keycode {
+            KeyCode::Space => {
+                self.is_paused = !self.is_paused;
 
-            if self.settings.debug {
-                println!("paused = {}", self.is_paused);
+                if self.settings.debug {
+                    println!("paused = {}", self.is_paused);
+                }
             }
+            KeyCode::D if self.is_paused => self.step_forward(),
+            _ => (),
         }
     }
 
@@ -227,6 +231,7 @@ impl Default for State {
         Self::new(Settings {
             debug: false,
             file: None,
+            updates_per_second: 16.,
         })
     }
 }

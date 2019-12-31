@@ -11,9 +11,6 @@ mod game;
 mod grid;
 mod settings;
 
-pub const UPDATES_PER_SECOND: f32 = 16.0;
-pub const MILLIS_PER_UPDATE: u64 = (1.0 / UPDATES_PER_SECOND * 1000.0) as u64;
-
 pub fn main() -> GameResult {
     let settings = Settings::from_args();
 
