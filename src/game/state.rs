@@ -1,6 +1,6 @@
-use crate::grid::{CellState, Grid};
-
+use super::{CELL_HEIGHT, CELL_WIDTH, DEAD_CELL_COLOR, LIVING_CELL_COLOR};
 use crate::grid::Coord;
+use crate::grid::{CellState, Grid};
 use crate::Settings;
 use ggez::event;
 use ggez::event::KeyMods;
@@ -50,8 +50,10 @@ impl State {
         let (x, y) = (coord.x, coord.y);
         let negative_x_offset = if x + self.camera.x < 0. { -1 } else { 0 };
         let negative_y_offset = if y + self.camera.y < 0. { -1 } else { 0 };
-        let cell_x = ((x + self.camera.x) / (30. * self.zoom_level)) as isize + negative_x_offset;
-        let cell_y = ((y + self.camera.y) / (30. * self.zoom_level)) as isize + negative_y_offset;
+        let cell_x =
+            ((x + self.camera.x) / (CELL_WIDTH * self.zoom_level)) as isize + negative_x_offset;
+        let cell_y =
+            ((y + self.camera.y) / (CELL_HEIGHT * self.zoom_level)) as isize + negative_y_offset;
         Coord::new(cell_x, cell_y)
     }
 
@@ -92,12 +94,12 @@ impl State {
                     ctx,
                     graphics::DrawMode::fill(),
                     Rect {
-                        x: self.zoom_level * (coord.x * 30) as f32 - self.camera.x,
-                        y: self.zoom_level * (coord.y * 30) as f32 - self.camera.y,
-                        w: 30.0 * self.zoom_level,
-                        h: 30.0 * self.zoom_level,
+                        x: self.zoom_level * (coord.x as f32 * CELL_WIDTH) - self.camera.x,
+                        y: self.zoom_level * (coord.y as f32 * CELL_HEIGHT) - self.camera.y,
+                        w: CELL_WIDTH * self.zoom_level,
+                        h: CELL_HEIGHT * self.zoom_level,
                     },
-                    [0.3, 0.3, 0.0, 1.0].into(),
+                    LIVING_CELL_COLOR.into(),
                 )?;
                 graphics::draw(ctx, &rectangle, (ggez::mint::Point2 { x: 0., y: 0. },))?;
             }
@@ -144,7 +146,7 @@ impl event::EventHandler for State {
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
-        graphics::clear(ctx, [0.1, 0.2, 0.3, 1.0].into());
+        graphics::clear(ctx, DEAD_CELL_COLOR.into());
         self.draw_grid(ctx)?;
 
         graphics::present(ctx)
@@ -176,15 +178,25 @@ impl event::EventHandler for State {
         }
     }
 
-    fn mouse_wheel_event(&mut self, _ctx: &mut Context, _x: f32, y: f32) {
-        self.zoom_level += if y > 0. { 0.05 } else { -0.05 };
-        self.zoom_level = if self.zoom_level > 2. {
-            2.
-        } else if self.zoom_level < 0.05 {
-            0.05
-        } else {
-            self.zoom_level
+    fn mouse_wheel_event(&mut self, ctx: &mut Context, _x: f32, y: f32) {
+        let absolute_position_before = {
+            let mouse_pos = mouse::position(ctx);
+            Coord::new(mouse_pos.x, mouse_pos.y)
         };
+        let relative_mouse_position_before =
+            relative_mouse_position(self, absolute_position_before);
+
+        self.zoom_level += if y > 0. { 0.05 } else { -0.05 };
+        if self.zoom_level > 2. {
+            self.zoom_level = 2.;
+        } else if self.zoom_level < 0.05 {
+            self.zoom_level = 0.05;
+        }
+
+        self.camera.x =
+            relative_mouse_position_before.x * self.zoom_level - absolute_position_before.x;
+        self.camera.y =
+            relative_mouse_position_before.y * self.zoom_level - absolute_position_before.y;
     }
 
     fn key_down_event(
@@ -217,4 +229,11 @@ impl Default for State {
             file: None,
         })
     }
+}
+
+fn relative_mouse_position(state: &State, absolute_position: Coord<f32>) -> Coord<f32> {
+    Coord::new(
+        (state.camera.x + absolute_position.x) / state.zoom_level,
+        (state.camera.y + absolute_position.y) / state.zoom_level,
+    )
 }
