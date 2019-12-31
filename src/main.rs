@@ -6,8 +6,6 @@ use structopt::StructOpt;
 use ggez::GameResult;
 
 pub use settings::Settings;
-use std::path::Path;
-use std::path::PathBuf;
 
 mod game;
 mod grid;

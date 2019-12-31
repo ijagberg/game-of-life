@@ -8,10 +8,7 @@ use ggez::graphics::{self, Rect};
 use ggez::input::keyboard::{self, KeyCode};
 use ggez::input::mouse::{self, MouseButton};
 use ggez::{Context, GameResult};
-use std::ffi::OsStr;
-use std::fs::File;
-use std::io::{BufRead, BufReader};
-use std::path::Path;
+
 use std::time::{Duration, Instant};
 
 enum MouseMode {
@@ -59,16 +56,26 @@ impl State {
     }
 
     fn update_grid(&mut self, _ctx: &mut Context) -> GameResult {
+        if self.settings.debug {
+            println!("updating grid...");
+        }
+
         let mut next_grid = Grid::new();
         for (&coord, state) in self.grid.cells() {
             let living_neighbors_count = self.grid.living_neighbors(coord).len();
+
+            if self.settings.debug {
+                println!(
+                    "cell at {:?} has {} living neighbors",
+                    coord, living_neighbors_count
+                );
+            }
+
             match state {
                 CellState::Alive if living_neighbors_count == 2 || living_neighbors_count == 3 => {
-                    // Set the cell to alive in the next state, and add all its neighbors
                     next_grid.set_alive(coord);
                 }
                 CellState::Dead if living_neighbors_count == 3 => {
-                    // Check if this cell is born in the next state
                     next_grid.set_alive(coord);
                 }
                 _ => (),
@@ -102,36 +109,36 @@ impl State {
 
 impl event::EventHandler for State {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
-        if Instant::now() - self.last_update >= Duration::from_millis(crate::MILLIS_PER_UPDATE) {
+        if !self.is_paused
+            && Instant::now() - self.last_update >= Duration::from_millis(crate::MILLIS_PER_UPDATE)
+        {
             self.update_grid(ctx)?;
-
-            let mouse_pos = mouse::position(ctx);
-            match self.mouse_mode {
-                MouseMode::MovingCanvas(grab) => {
-                    let (delta_x, delta_y) = (mouse_pos.x - grab.x, mouse_pos.y - grab.y);
-                    self.camera.x -= delta_x;
-                    self.camera.y -= delta_y;
-                    self.mouse_mode = MouseMode::MovingCanvas(Coord::new(mouse_pos.x, mouse_pos.y));
-                }
-                MouseMode::Spawning => {
-                    let target_coord = self.get_cell_coords(Coord::new(mouse_pos.x, mouse_pos.y));
-                    self.grid
-                        .set_alive(Coord::new(target_coord.x, target_coord.y));
-
-                    if self.settings.debug {
-                        println!("spawning at {:?}", target_coord);
-                    }
-                }
-                MouseMode::Killing => {
-                    let target_cell = self.get_cell_coords(Coord::new(mouse_pos.x, mouse_pos.y));
-                    self.grid.set_dead(Coord::new(target_cell.x, target_cell.y));
-                }
-                MouseMode::None => (),
-            }
-            if self.is_paused && !keyboard::is_key_pressed(ctx, KeyCode::D) {
-                return Ok(());
-            }
             self.last_update = Instant::now();
+        }
+
+        // read input even if game is paused
+        let mouse_pos = mouse::position(ctx);
+        match self.mouse_mode {
+            MouseMode::MovingCanvas(grab) => {
+                let (delta_x, delta_y) = (mouse_pos.x - grab.x, mouse_pos.y - grab.y);
+                self.camera.x -= delta_x;
+                self.camera.y -= delta_y;
+                self.mouse_mode = MouseMode::MovingCanvas(Coord::new(mouse_pos.x, mouse_pos.y));
+            }
+            MouseMode::Spawning => {
+                let target_coord = self.get_cell_coords(Coord::new(mouse_pos.x, mouse_pos.y));
+                self.grid
+                    .set_alive(Coord::new(target_coord.x, target_coord.y));
+
+                if self.settings.debug {
+                    println!("spawning at {:?}", target_coord);
+                }
+            }
+            MouseMode::Killing => {
+                let target_cell = self.get_cell_coords(Coord::new(mouse_pos.x, mouse_pos.y));
+                self.grid.set_dead(Coord::new(target_cell.x, target_cell.y));
+            }
+            MouseMode::None => (),
         }
         Ok(())
     }
@@ -169,7 +176,7 @@ impl event::EventHandler for State {
         }
     }
 
-    fn mouse_wheel_event(&mut self, ctx: &mut Context, _x: f32, y: f32) {
+    fn mouse_wheel_event(&mut self, _ctx: &mut Context, _x: f32, y: f32) {
         self.zoom_level += if y > 0. { 0.05 } else { -0.05 };
         self.zoom_level = if self.zoom_level > 2. {
             2.
