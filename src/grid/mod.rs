@@ -1,4 +1,4 @@
-pub use coord::Coord;
+use coord::Coord;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::ffi::OsStr;
@@ -6,8 +6,6 @@ use std::fmt::{self, Debug, Formatter};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
-
-mod coord;
 
 #[derive(Copy, Clone, Debug)]
 pub enum CellState {
@@ -27,22 +25,9 @@ impl Grid {
         }
     }
 
-    fn neighbor_coords(&self, coord: Coord<isize>) -> [Coord<isize>; 8] {
-        let (x, y) = (coord.x, coord.y);
-        [
-            Coord { x: x + 1, y },        // Right
-            Coord { x: x - 1, y },        // Left
-            Coord { x, y: y + 1 },        // Down
-            Coord { x, y: y - 1 },        // Up
-            Coord { x: x + 1, y: y + 1 }, // Down Right
-            Coord { x: x + 1, y: y - 1 }, // Up Right
-            Coord { x: x - 1, y: y + 1 }, // Down Left
-            Coord { x: x - 1, y: y - 1 }, // Up Left
-        ]
-    }
-
     fn neighbors(&self, coord: Coord<isize>) -> Vec<(Coord<isize>, CellState)> {
-        self.neighbor_coords(coord)
+        coord
+            .neighbors()
             .iter()
             .map(|&coord| {
                 (
@@ -89,8 +74,8 @@ impl Grid {
         self.cell_states.remove(&cell);
     }
 
-    pub fn from_file(file_name: String) -> Self {
-        let file = Path::new(&file_name);
+    pub fn from_file(file_name: &str) -> Self {
+        let file = Path::new(file_name);
         match file.extension().and_then(OsStr::to_str) {
             Some("txt") => Self::from_txt(file).unwrap_or_default(),
             Some("rle") => Self::from_rle(file).unwrap_or_default(),

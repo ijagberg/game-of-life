@@ -1,14 +1,13 @@
 use super::{CELL_HEIGHT, CELL_WIDTH, DEAD_CELL_COLOR, LIVING_CELL_COLOR};
-use crate::grid::Coord;
 use crate::grid::{CellState, Grid};
 use crate::Settings;
+use coord::Coord;
 use ggez::event;
 use ggez::event::KeyMods;
 use ggez::graphics::{self, Rect};
 use ggez::input::keyboard::{self, KeyCode};
 use ggez::input::mouse::{self, MouseButton};
 use ggez::{Context, GameResult};
-
 use std::time::{Duration, Instant};
 
 enum MouseMode {
@@ -31,12 +30,12 @@ pub struct State {
 impl State {
     pub fn new(settings: Settings) -> Self {
         let grid = if let Some(file_name) = &settings.file {
-            Grid::from_file(file_name.clone())
+            Grid::from_file(&file_name)
         } else {
             Grid::new()
         };
         Self {
-            grid: grid,
+            grid,
             last_update: Instant::now(),
             zoom_level: 1.,
             camera: Coord::default(),

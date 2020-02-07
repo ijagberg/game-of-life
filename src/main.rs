@@ -26,7 +26,6 @@ pub fn main() -> GameResult {
             min_height: 100.,
             max_width: 0.0,
             max_height: 0.0,
-            hidpi: false,
             resizable: true,
         })
         .build()?;

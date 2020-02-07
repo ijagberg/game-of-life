@@ -5,8 +5,7 @@ authors = ["Isak Jägberg <ijagberg@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-ggez = "0.5.0-rc.2"
-cgmath = { version = "0.17", features = ["mint"]}
 regex = "1.1.6"
-num = "0.2.0"
 structopt = "0.3.7"
+coord = { git = "https://github.com/ijagberg/coord" }
+ggez = "0.5.1"
