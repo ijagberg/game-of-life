@@ -83,6 +83,10 @@ impl Grid {
         }
     }
 
+    pub fn number_of_cells(&self) -> usize {
+        self.cell_states.len()
+    }
+
     fn from_txt(file_name: &Path) -> Result<Self, Box<dyn std::error::Error>> {
         let mut grid = Grid::new();
         let f = File::open(file_name)?;

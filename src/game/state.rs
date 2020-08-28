@@ -1,4 +1,4 @@
-use super::{CELL_HEIGHT, CELL_WIDTH, DEAD_CELL_COLOR, LIVING_CELL_COLOR};
+use super::{ACTIVE_CELL_DEBUG_COLOR, CELL_HEIGHT, CELL_WIDTH, DEAD_CELL_COLOR, LIVING_CELL_COLOR};
 use crate::grid::{CellState, Grid};
 use crate::Settings;
 use coord::Coord;
@@ -57,20 +57,14 @@ impl State {
     }
 
     fn step_forward(&mut self) {
+        let timer = Instant::now();
         if self.settings.debug {
-            println!("updating grid...");
+            print!("updating {} cells... ", self.grid.number_of_cells());
         }
 
         let mut next_grid = Grid::new();
         for (&coord, state) in self.grid.cells() {
             let living_neighbors_count = self.grid.living_neighbors(coord).len();
-
-            if self.settings.debug {
-                println!(
-                    "cell at {:?} has {} living neighbors",
-                    coord, living_neighbors_count
-                );
-            }
 
             match state {
                 CellState::Alive if living_neighbors_count == 2 || living_neighbors_count == 3 => {
@@ -83,6 +77,9 @@ impl State {
             }
         }
         self.grid = next_grid;
+        if self.settings.debug {
+            println!("finished in {:?}", timer.elapsed());
+        }
     }
 
     pub fn draw_grid(&mut self, ctx: &mut Context) -> GameResult {
@@ -98,6 +95,20 @@ impl State {
                         h: CELL_HEIGHT * self.zoom_level,
                     },
                     LIVING_CELL_COLOR.into(),
+                )?;
+                graphics::draw(ctx, &rectangle, (ggez::mint::Point2 { x: 0., y: 0. },))?;
+            } else if self.settings.render_active_cells {
+                // render all cells in the hashmap
+                let rectangle = graphics::Mesh::new_rectangle(
+                    ctx,
+                    graphics::DrawMode::fill(),
+                    Rect {
+                        x: self.zoom_level * (coord.x as f32 * CELL_WIDTH) - self.camera.x,
+                        y: self.zoom_level * (coord.y as f32 * CELL_HEIGHT) - self.camera.y,
+                        w: CELL_WIDTH * self.zoom_level,
+                        h: CELL_HEIGHT * self.zoom_level,
+                    },
+                    ACTIVE_CELL_DEBUG_COLOR.into(),
                 )?;
                 graphics::draw(ctx, &rectangle, (ggez::mint::Point2 { x: 0., y: 0. },))?;
             }
@@ -227,11 +238,7 @@ impl event::EventHandler for State {
 
 impl Default for State {
     fn default() -> Self {
-        Self::new(Settings {
-            debug: false,
-            file: None,
-            updates_per_second: 16.,
-        })
+        Self::new(Settings::default())
     }
 }
 
