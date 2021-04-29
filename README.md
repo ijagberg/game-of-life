@@ -2,6 +2,8 @@
 
 Rust implementation of Conway's Game of Life, using [ggez](https://github.com/ggez/ggez)
 
+![alt text](https://github.com/ijagberg/game-of-life/raw/master/example.gif "Logo Title Text 1")
+
 # Controls
 
 * Click anywhere to create a living cell at that location, or to kill a living cell. 
