@@ -2,7 +2,7 @@
 
 Rust implementation of Conway's Game of Life, using [ggez](https://github.com/ggez/ggez)
 
-![alt text](https://github.com/ijagberg/game-of-life/raw/master/example.gif "Logo Title Text 1")
+![alt text](https://github.com/ijagberg/game-of-life/raw/master/example.gif " ")
 
 # Controls
 
@@ -16,6 +16,8 @@ Rust implementation of Conway's Game of Life, using [ggez](https://github.com/gg
 
 * --debug, enable debug logging
 * --file <FILE>, sets the initial state of the game to the state in <FILE> (supports "txt" and "rle" extensions)
+
   ```game-of-life --file resources/koks_galaxy.txt```
 * --updates-per-second <FLOAT>, sets the refresh rate of the game, in order to speed up/slow down simulation (default=16.0)
+
   ```game-of-life --updates-per-second 32```
