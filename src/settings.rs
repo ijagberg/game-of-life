@@ -12,6 +12,8 @@ pub struct Settings {
     pub brush_size: f32,
     #[structopt(long)]
     pub render_active_cells: bool,
+    #[structopt(long)]
+    pub start_paused: bool,
 }
 
 impl Settings {
@@ -28,6 +30,7 @@ impl Default for Settings {
             updates_per_second: 16.0,
             brush_size: 1.0,
             render_active_cells: false,
+            start_paused: false,
         }
     }
 }

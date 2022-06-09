@@ -1,0 +1,13 @@
+#CSYNTH xs49_y933zy066yioge2zwooy22596zz8kkm0mmy6cczx343 costs 17 gliders (pseudo).
+#CLL state-numbering golly
+x = 264, y = 41, rule = B3/S23
+66bobo$66b2o$59bo7bo$60bo$58b3o2$71bo$63bo6bo177bo$61b2o7b3o59bo
+61bo53bobo8bo$62b2o67bobo59bobo52b2o8bobo$131bobo59bobo49bo12bobo$
+130b2ob3o56b2ob3o45bobo11b2ob3o$63bo72bo61bo45b2o17bo$63b2o7b2o56b
+2ob3o56b2ob3o59b2ob3o$62bobo7bobo55b2obo58b2obo61b2obo$72bo6$260b
+2o$6bo116bo62bo64bo8b2o$5bo115bobo61bobo62bobo$5b3o114b2o61bo2bo8b
+o52bo2bo$obo183b2o7b2o54b2o$b2o37b2o65b2o60b2o25b2o36b2o$bo37bobo
+64bobo15b3o41bobo62bobo$39bo66bo17bo43bo30b2o32bo24b2o$38b2o65b2o
+18bo41b2o30bobo30b2o24b2o$199bo5$190b2o56b2o$191b2o54bobo$190bo58b
+o$252b2o$252bobo$252bo!
+

@@ -39,7 +39,7 @@ impl State {
             last_update: Instant::now(),
             zoom_level: 1.,
             camera: Coord::default(),
-            is_paused: false,
+            is_paused: settings.start_paused,
             mouse_mode: MouseMode::None,
             settings,
         }
