@@ -15,7 +15,7 @@ pub fn main() -> GameResult {
     let settings = Settings::from_args();
 
     let cb = ggez::ContextBuilder::new("Game of Life", "ijagberg");
-    let (ctx, event_loop) = &mut cb
+    let (ctx, event_loop) = cb
         .window_mode(WindowMode {
             width: 1200.,
             height: 600.,
@@ -27,9 +27,11 @@ pub fn main() -> GameResult {
             max_width: 0.0,
             max_height: 0.0,
             resizable: true,
+            visible: true,
+            resize_on_scale_factor_change: false,
         })
         .build()?;
 
-    let mut state = State::new(settings);
-    event::run(ctx, event_loop, &mut state)
+    let state = State::new(settings);
+    event::run(ctx, event_loop, state)
 }
