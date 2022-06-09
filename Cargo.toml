@@ -5,7 +5,7 @@ authors = ["Isak Jägberg <ijagberg@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-regex = "1.1.6"
-structopt = "0.3.7"
+regex = "1.5.5"
+structopt = "0.3.26"
 coord = { git = "https://github.com/ijagberg/coord" }
-ggez = "0.5.1"
+ggez = "0.7.0"
